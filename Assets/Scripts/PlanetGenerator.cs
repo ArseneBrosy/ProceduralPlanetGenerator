@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class PlanetGenerator : MonoBehaviour {
 
-    [Range(1, 17)]
+    [Min(1)]
     public int resolution = 10;
     public Material faceMaterial;
     public Transform planet;
@@ -30,7 +30,7 @@ public class PlanetGenerator : MonoBehaviour {
 
         // create the meshes
         for (int i = 0; i < faces.Length; i++) {
-            GameObject faceObj = new GameObject("Chunk " + i);
+            GameObject faceObj = new GameObject("Face " + i);
             faceObj.transform.parent = planet;
 
             MeshFilter meshFilter = faceObj.AddComponent<MeshFilter>();

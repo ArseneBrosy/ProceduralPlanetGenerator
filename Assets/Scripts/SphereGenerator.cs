@@ -2,52 +2,54 @@ using UnityEngine;
 
 public static class SphereGenerator {
 
-    public static Mesh[] CreateFace(Vector3 normal, int resolution) {
-        Mesh[] allMeshes = new Mesh[resolution * resolution];
+    public static Mesh CreateFace(Vector3 normal, int resolution) {
+        Mesh mesh = new Mesh();
 
         Vector3 axisA = new Vector3(normal.y, normal.z, normal.x);
         Vector3 axisB = Vector3.Cross(normal, axisA);
 
-        for (int y = 0; y < resolution - 1; y++) {
-            for (int x = 0; x < resolution - 1; x++) {
-                // Calcul des points (comme avant)
-                Vector2 percent00 = new Vector2(x, y) / (resolution - 1f);
-                Vector2 percent10 = new Vector2(x + 1, y) / (resolution - 1f);
-                Vector2 percent01 = new Vector2(x, y + 1) / (resolution - 1f);
-                Vector2 percent11 = new Vector2(x + 1, y + 1) / (resolution - 1f);
+        Vector3[] vertices = new Vector3[resolution * resolution];
+        int[] triangles = new int[(resolution - 1) * (resolution - 1) * 6];
 
-                Vector3 v00 = normal + axisA * (percent00.x - 0.5f) * 2 + axisB * (percent00.y - 0.5f) * 2;
-                Vector3 v10 = normal + axisA * (percent10.x - 0.5f) * 2 + axisB * (percent10.y - 0.5f) * 2;
-                Vector3 v01 = normal + axisA * (percent01.x - 0.5f) * 2 + axisB * (percent01.y - 0.5f) * 2;
-                Vector3 v11 = normal + axisA * (percent11.x - 0.5f) * 2 + axisB * (percent11.y - 0.5f) * 2;
-                v00 = PointOnCubeToPointOnSphere(v00);
-                v10 = PointOnCubeToPointOnSphere(v10);
-                v01 = PointOnCubeToPointOnSphere(v01);
-                v11 = PointOnCubeToPointOnSphere(v11);
+        int triIndex = 0;
 
-                // Création du mesh pour ce quad
-                Mesh mesh = new Mesh();
-                Vector3[] vertices = new Vector3[4] { v00, v10, v01, v11 };
-                int[] triangles = new int[6]
-                {
-                0, 3, 2,  // triangle 1
-                0, 1, 3   // triangle 2
-                };
+        for (int y = 0; y < resolution; y++) {
+            for (int x = 0; x < resolution; x++) {
+                int vertexIndex = x + y * resolution;
+                Vector2 percent = new Vector2(x, y) / (resolution - 1f);
+                Vector3 point = normal + axisA * (percent.x - 0.5f) * 2 + axisB * (percent.y - 0.5f) * 2;
+                point = PointOnCubeToPointOnSphere(point);
 
-                mesh.vertices = vertices;
-                mesh.triangles = triangles;
-                mesh.RecalculateNormals();
+                vertices[vertexIndex] = point;
 
-                allMeshes[y * resolution + x] = mesh;
+                if (x != resolution - 1 && y != resolution - 1) {
+                    int i0 = vertexIndex;
+                    int i1 = vertexIndex + 1;
+                    int i2 = vertexIndex + resolution;
+                    int i3 = vertexIndex + resolution + 1;
+
+                    triangles[triIndex + 0] = i0;
+                    triangles[triIndex + 1] = i3;
+                    triangles[triIndex + 2] = i2;
+
+                    triangles[triIndex + 3] = i0;
+                    triangles[triIndex + 4] = i1;
+                    triangles[triIndex + 5] = i3;
+
+                    triIndex += 6;
+                }
             }
         }
 
-        return allMeshes;
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+
+        return mesh;
     }
 
     public static Mesh[] GenerateFaces(int resolution) {
-        int resolution2 = resolution * resolution;
-        Mesh[] allMeshes = new Mesh[6 * resolution2];
+        Mesh[] allMeshes = new Mesh[6];
 
         Vector3[] faceNormals = {
             Vector3.up,
@@ -59,11 +61,7 @@ public static class SphereGenerator {
         };
 
         for (int i = 0; i < faceNormals.Length; i++) {
-            Mesh[] faceMeshes = new Mesh[resolution2];
-            faceMeshes = SphereGenerator.CreateFace(faceNormals[i], resolution);
-            for (int j = 0; j < resolution2; j++) {
-                allMeshes[i * resolution2 + j] = faceMeshes[j];
-            }
+            allMeshes[i] = SphereGenerator.CreateFace(faceNormals[i], resolution);
         }
 
         return allMeshes;
