@@ -48,7 +48,7 @@ public class PlanetGenerator : MonoBehaviour {
         }
 
         // generate noise map
-        float[,] noiseMap = Noise.GenerateNoiseMap(360, 180, noiseScale);
+        float[,] noiseMap = Noise.GenerateFractalNoiseMap(360, 180, noiseScale, 3, 0.5f, 0.3f);
 
         PlanetDisplay display = FindFirstObjectByType<PlanetDisplay>();
         display.DrawNoiseMap(noiseMap);
