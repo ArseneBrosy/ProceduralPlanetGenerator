@@ -2,13 +2,14 @@ using UnityEngine;
 
 public static class SphereGenerator {
 
-    public static Mesh CreateFace(Vector3 normal, int resolution) {
+    public static Mesh CreateFace(Vector3 normal, int resolution, float scale = 1f) {
         Mesh mesh = new Mesh();
 
         Vector3 axisA = new Vector3(normal.y, normal.z, normal.x);
         Vector3 axisB = Vector3.Cross(normal, axisA);
 
         Vector3[] vertices = new Vector3[resolution * resolution];
+        Vector2[] uvs = new Vector2[resolution * resolution];
         int[] triangles = new int[(resolution - 1) * (resolution - 1) * 6];
 
         int triIndex = 0;
@@ -19,8 +20,12 @@ public static class SphereGenerator {
                 Vector2 percent = new Vector2(x, y) / (resolution - 1f);
                 Vector3 point = normal + axisA * (percent.x - 0.5f) * 2 + axisB * (percent.y - 0.5f) * 2;
                 point = PointOnCubeToPointOnSphere(point);
+                Vector2 latLon = PointOnSphereToLatLon(point);
+                Vector2 uvPercent = new Vector2((latLon.x + 180) / 360f, (latLon.y + 90) / 180f);
+                point *= scale;
 
                 vertices[vertexIndex] = point;
+                uvs[vertexIndex] = uvPercent;
 
                 if (x != resolution - 1 && y != resolution - 1) {
                     int i0 = vertexIndex;
@@ -43,12 +48,13 @@ public static class SphereGenerator {
 
         mesh.vertices = vertices;
         mesh.triangles = triangles;
+        mesh.uv = uvs;
         mesh.RecalculateNormals();
 
         return mesh;
     }
 
-    public static Mesh[] GenerateFaces(int resolution) {
+    public static Mesh[] GenerateFaces(int resolution, float scale = 1f) {
         Mesh[] allMeshes = new Mesh[6];
 
         Vector3[] faceNormals = {
@@ -61,7 +67,7 @@ public static class SphereGenerator {
         };
 
         for (int i = 0; i < faceNormals.Length; i++) {
-            allMeshes[i] = SphereGenerator.CreateFace(faceNormals[i], resolution);
+            allMeshes[i] = SphereGenerator.CreateFace(faceNormals[i], resolution, scale);
         }
 
         return allMeshes;
@@ -81,5 +87,22 @@ public static class SphereGenerator {
         float newZ = z * Mathf.Sqrt(1f - (x2 / 2f) - (y2 / 2f) + (x2 * y2) / 3f);
 
         return new Vector3(newX, newY, newZ);
+    }
+
+    public static Vector2 PointOnSphereToLatLon(Vector3 p) {
+        float latitude = Mathf.Asin(p.y) * Mathf.Rad2Deg;
+        float longitude = Mathf.Atan2(p.x, p.z) * Mathf.Rad2Deg;
+        return new Vector2(longitude, latitude);
+    }
+
+    public static Vector3 LatLonToPointOnSphere(float latitude, float longitude) {
+        float latRad = latitude * Mathf.Deg2Rad;
+        float lonRad = longitude * Mathf.Deg2Rad;
+
+        float x = Mathf.Cos(latRad) * Mathf.Sin(lonRad);
+        float y = Mathf.Sin(latRad);
+        float z = Mathf.Cos(latRad) * Mathf.Cos(lonRad);
+
+        return new Vector3(x, y, z);
     }
 }

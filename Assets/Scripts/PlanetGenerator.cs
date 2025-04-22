@@ -5,11 +5,15 @@ public class PlanetGenerator : MonoBehaviour {
 
     [Min(1)]
     public int resolution = 10;
+    [Min(1)]
+    public float scale = 1f;
     public Material faceMaterial;
     public Transform planet;
 
     [Space]
     public int seed = 0;
+    [Min(0)]
+    public float noiseScale = 1f;
 
     [Space]
     public bool autoGenerate;
@@ -26,7 +30,8 @@ public class PlanetGenerator : MonoBehaviour {
         }
 
         // generate the sphere
-        Mesh[] faces = SphereGenerator.GenerateFaces(resolution + 1);
+        Mesh[] faces = SphereGenerator.GenerateFaces(resolution + 1, scale);
+        Renderer[] facesRenderers = new Renderer[6];
 
         // create the meshes
         for (int i = 0; i < faces.Length; i++) {
@@ -38,6 +43,15 @@ public class PlanetGenerator : MonoBehaviour {
 
             meshFilter.mesh = faces[i];
             meshRenderer.material = faceMaterial != null ? faceMaterial : new Material(Shader.Find("Standard"));
+
+            facesRenderers[i] = meshRenderer;
         }
+
+        // generate noise map
+        float[,] noiseMap = Noise.GenerateNoiseMap(360, 180, noiseScale);
+
+        PlanetDisplay display = FindFirstObjectByType<PlanetDisplay>();
+        display.DrawNoiseMap(noiseMap);
+        display.DrawTexture(noiseMap, facesRenderers);
     }
 }
