@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class Noise {
 
-	public static float[,] GenerateFractalNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float scaleMultiplier, float influenceMultipier) {
+	public static float[,] GenerateFractalNoiseMap(int mapWidth, int mapHeight, float scale, int seed, int octaves, float scaleMultiplier, float influenceMultipier, bool rotated90 = false) {
 		if (octaves <= 0) {
 			octaves = 1;
 		}
@@ -10,14 +10,16 @@ public static class Noise {
 		float octaveScale = scale;
 		float influence = 1f;
 		float maxInfluence = influence;
+		int currentSeed = seed;
 		float[,] finalNoiseMap = new float[mapWidth, mapHeight];
 
 		for (int i = 0; i < octaves; i++) {
-			float[,] noiseMap = GenerateNoiseMap(mapWidth, mapHeight, octaveScale);
+			float[,] noiseMap = GenerateNoiseMap(mapWidth, mapHeight, octaveScale, currentSeed, rotated90);
 			noiseMap = MultiplyFloatArray(noiseMap, influence);
 			octaveScale *= scaleMultiplier;
 			influence *= influenceMultipier;
 			maxInfluence += influence;
+			currentSeed = GenerateNewSeed(currentSeed);
 
 			// add the new noise map on top
 			if (i == 0) {
@@ -32,6 +34,17 @@ public static class Noise {
 
 		return finalNoiseMap;
     }
+
+	public static int GenerateNewSeed(int baseSeed) {
+		unchecked {
+			int hash = baseSeed;
+			hash = (hash * 397) ^ (baseSeed >> 16);
+			hash = (hash * 397) ^ (baseSeed << 5);
+			hash = Mathf.Abs(hash);
+			hash %= 100000;
+			return hash;
+		}
+	}
 
 	public static float[,] AddFloatArrays(float[,] array1, float[,] array2) {
 		int rows = array1.GetLength(0);
@@ -67,7 +80,7 @@ public static class Noise {
 		return result;
 	}
 
-	public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale) {
+	public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int seed, bool rotated90 = false) {
 		float[,] noiseMap = new float[mapWidth, mapHeight];
 
 		if (scale <= 0) {
@@ -79,11 +92,16 @@ public static class Noise {
 				float latitude = Mathf.Lerp(90, -90, y / (float)mapHeight);
 				float longitude = Mathf.Lerp(-180, 180, x / (float)mapWidth);
 				Vector3 pointOnSphere = SphereGenerator.LatLonToPointOnSphere(latitude, longitude);
+				if (rotated90) {
+					float newPointX = -pointOnSphere.y;
+					pointOnSphere.y = pointOnSphere.x;
+					pointOnSphere.x = newPointX;
+                }
 				float sampleX = pointOnSphere.x / scale;
 				float sampleY = pointOnSphere.y / scale;
 				float sampleZ = pointOnSphere.z / scale;
 
-				float perlinValue = PerlinNoise3D(sampleX, sampleY, sampleZ);
+				float perlinValue = PerlinNoise3D(sampleX, sampleY, sampleZ, seed);
 				noiseMap[x, y] = perlinValue;
 			}
 		}
@@ -91,8 +109,8 @@ public static class Noise {
 		return noiseMap;
 	}
 
-	public static float PerlinNoise3D(float x, float y, float z) {
-		x += 4856f;
+	public static float PerlinNoise3D(float x, float y, float z, int seed) {
+		x += seed * 0.1f;
 		y += 1f;
 		z += 2f;
 		float xy = _perlin3DFixed(x, y);

@@ -20,9 +20,13 @@ public static class SphereGenerator {
                 Vector2 percent = new Vector2(x, y) / (resolution - 1f);
                 Vector3 point = normal + axisA * (percent.x - 0.5f) * 2 + axisB * (percent.y - 0.5f) * 2;
                 point = PointOnCubeToPointOnSphere(point);
-                Vector2 latLon = PointOnSphereToLatLon(point);
-                Vector2 uvPercent = new Vector2((latLon.x + 180) / 360f, (latLon.y + 90) / 180f);
+                Vector2 latLon = (normal == Vector3.up || normal == Vector3.down) ? PointOnSphereToLatLon(new Vector3(-point.y, point.x, point.z)) : PointOnSphereToLatLon(point);
+                Vector2 uvPercent = new Vector2((latLon.x + 180f) / 360f, (latLon.y + 90f) / 180f);
                 point *= scale;
+
+                if (uvPercent.x < 0.25f && normal == Vector3.back) {
+                    uvPercent.x += 1f;
+                }
 
                 vertices[vertexIndex] = point;
                 uvs[vertexIndex] = uvPercent;

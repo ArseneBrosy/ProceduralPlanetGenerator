@@ -14,6 +14,12 @@ public class PlanetGenerator : MonoBehaviour {
     public int seed = 0;
     [Min(0)]
     public float noiseScale = 1f;
+    [Min(1)]
+    public int octaves = 1;
+    [Range(0f, 1f)]
+    public float scaleMultiplier = 0.3f;
+    [Range(0f, 1f)]
+    public float influenceMultiplier = 0.3f;
 
     [Space]
     public bool autoGenerate;
@@ -28,6 +34,9 @@ public class PlanetGenerator : MonoBehaviour {
         foreach (Transform child in children) {
             DestroyImmediate(child.gameObject);
         }
+
+        // generate new seed
+        int newSeed = Noise.GenerateNewSeed(seed);
 
         // generate the sphere
         Mesh[] faces = SphereGenerator.GenerateFaces(resolution + 1, scale);
@@ -48,10 +57,11 @@ public class PlanetGenerator : MonoBehaviour {
         }
 
         // generate noise map
-        float[,] noiseMap = Noise.GenerateFractalNoiseMap(360, 180, noiseScale, 3, 0.5f, 0.3f);
+        float[,] noiseMap = Noise.GenerateFractalNoiseMap(720, 360, noiseScale, newSeed, octaves, scaleMultiplier, influenceMultiplier);
+        float[,] noiseMap90 = Noise.GenerateFractalNoiseMap(720, 360, noiseScale, newSeed, octaves, scaleMultiplier, influenceMultiplier, true);
 
         PlanetDisplay display = FindFirstObjectByType<PlanetDisplay>();
-        display.DrawNoiseMap(noiseMap);
-        display.DrawTexture(noiseMap, facesRenderers);
+        display.DrawNoiseMap(noiseMap); // plane
+        display.DrawTexture(noiseMap, noiseMap90, facesRenderers);
     }
 }
